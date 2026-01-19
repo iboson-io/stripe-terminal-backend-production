@@ -8,4 +8,6 @@ COPY . .
 RUN bundle install
 EXPOSE 4567
 
-ENTRYPOINT ["ruby", "web.rb", "-o", "0.0.0.0"]
+# Support PORT environment variable (for platforms like Heroku, Render)
+# Default to 4567 if PORT is not set
+ENTRYPOINT ["sh", "-c", "ruby web.rb -p ${PORT:-4567} -o 0.0.0.0"]

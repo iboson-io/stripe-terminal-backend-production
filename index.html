@@ -1,16 +1,81 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Stripe Terminal Example Backend</title>
+    <title>Stripe Terminal Backend</title>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .status {
+            background: #10b981;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+        .warning {
+            background: #f59e0b;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        code {
+            background: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
 </head>
 <body>
-<p>
-Great! You've successfully deployed the Stripe Terminal example backend.
-</p>
-
-<p>
-Next, copy the URL of this page (this is your "backend URL"), and use it to <a href="https://stripe.com/docs/terminal/example-applications#run-example-application">run the example application</a>.
-</p>
+    <h1>Stripe Terminal Backend</h1>
+    <div class="status">✓ Backend is running</div>
+    
+    <h2>Status</h2>
+    <p>
+        Your Stripe Terminal backend has been successfully deployed and is ready to use.
+    </p>
+    
+    <h2>Next Steps</h2>
+    <ol>
+        <li>Copy the URL of this page (this is your "backend URL")</li>
+        <li>Use this URL when configuring your Stripe Terminal client applications</li>
+        <li>Ensure your client apps include the API key in requests:
+            <ul>
+                <li>Header: <code>X-API-Key: your-api-key</code></li>
+                <li>Or: <code>Authorization: Bearer your-api-key</code></li>
+            </ul>
+        </li>
+        <li>See the <a href="https://stripe.com/docs/terminal">Stripe Terminal documentation</a> for integration details</li>
+    </ol>
+    
+    <div class="warning">
+        <strong>Security Note:</strong> This backend requires API authentication for all endpoints. 
+        Make sure your <code>API_KEY</code> environment variable is set and shared securely with your client applications.
+    </div>
+    
+    <h2>Available Endpoints</h2>
+    <ul>
+        <li><code>POST /connection_token</code> - Create a connection token</li>
+        <li><code>POST /create_payment_intent</code> - Create a payment intent</li>
+        <li><code>POST /capture_payment_intent</code> - Capture a payment intent</li>
+        <li><code>POST /cancel_payment_intent</code> - Cancel a payment intent</li>
+        <li><code>GET /list_locations</code> - List Terminal locations</li>
+        <li><code>POST /create_location</code> - Create a Terminal location</li>
+    </ul>
+    
+    <p>
+        <small>
+            For detailed API documentation, see the <a href="https://stripe.com/docs/terminal">Stripe Terminal docs</a>.
+        </small>
+    </p>
 </body>
 </html>

@@ -3,28 +3,128 @@ require 'stripe'
 require 'dotenv'
 require 'json'
 require 'sinatra/cross_origin'
+require 'rack/protection'
 
-# Browsers require that external servers enable CORS when the server is at a different origin than the website.
-# https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
-# This enables the requires CORS headers to allow the browser to make the requests from the JS Example App.
-configure do
-  enable :cross_origin
+# Load environment variables
+Dotenv.load
+
+# Production/Environment Configuration
+PRODUCTION = ENV['RACK_ENV'] == 'production' || ENV['ENVIRONMENT'] == 'production'
+STRIPE_ENV = ENV['STRIPE_ENV'] || (PRODUCTION ? 'production' : 'test')
+
+# Security: API Authentication
+API_KEY = ENV['API_KEY'] || ENV['BACKEND_API_KEY']
+ALLOWED_ORIGINS = ENV['ALLOWED_ORIGINS'] ? ENV['ALLOWED_ORIGINS'].split(',').map(&:strip) : (PRODUCTION ? [] : ['*'])
+
+# Stripe Configuration
+if STRIPE_ENV == 'production'
+  Stripe.api_key = ENV['STRIPE_SECRET_KEY'] || ENV['STRIPE_LIVE_SECRET_KEY']
+else
+  Stripe.api_key = ENV['STRIPE_TEST_SECRET_KEY']
+end
+Stripe.api_version = '2020-03-02'
+
+# Production Configuration Validation
+if PRODUCTION
+  if API_KEY.nil? || API_KEY.empty?
+    puts "\n❌ ERROR: API_KEY is required in production but is not set!"
+    puts "   Set the API_KEY environment variable before starting the server.\n\n"
+  end
+  
+  if ALLOWED_ORIGINS.empty? || ALLOWED_ORIGINS.include?('*')
+    puts "\n⚠️  WARNING: ALLOWED_ORIGINS should be set to specific origins in production!"
+    puts "   Current value allows all origins (*) which is insecure.\n\n"
+  end
+  
+  if Stripe.api_key.nil? || Stripe.api_key.empty? || !Stripe.api_key.start_with?('sk_live')
+    puts "\n⚠️  WARNING: STRIPE_SECRET_KEY should be set to your live key (sk_live_...) in production!\n\n"
+  end
 end
 
+# Security: Enable protection against common attacks
+configure do
+  enable :cross_origin
+  enable :sessions
+  set :protection, :except => [:json_csrf] # CORS handles cross-origin for API
+end
+
+# Security: CORS Configuration
 before do
-  response.headers['Access-Control-Allow-Origin'] = '*'
+  origin = request.env['HTTP_ORIGIN']
+  
+  # Handle CORS
+  if ALLOWED_ORIGINS.include?('*')
+    # Wildcard allowed (test/development mode)
+    response.headers['Access-Control-Allow-Origin'] = '*'
+  elsif origin && ALLOWED_ORIGINS.include?(origin)
+    # Specific origin match
+    response.headers['Access-Control-Allow-Origin'] = origin
+  elsif PRODUCTION && ALLOWED_ORIGINS.empty?
+    # Production with no allowed origins configured - deny CORS
+    # This is a configuration error that should be caught, but we'll be restrictive
+    response.headers['Access-Control-Allow-Origin'] = 'null'
+  end
+  
+  # Set CORS headers if an origin was allowed
+  if response.headers['Access-Control-Allow-Origin']
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Authorization, Content-Type, Accept, X-API-Key'
+    response.headers['Access-Control-Max-Age'] = '3600'
+  end
+  
+  # Security headers
+  response.headers['X-Content-Type-Options'] = 'nosniff'
+  response.headers['X-Frame-Options'] = 'DENY'
+  response.headers['X-XSS-Protection'] = '1; mode=block'
+  if PRODUCTION
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+  end
 end
 
 options "*" do
-  response.headers["Allow"] = "GET, POST, OPTIONS"
-  response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept, X-User-Email, X-Auth-Token"
-  response.headers["Access-Control-Allow-Origin"] = "*"
-  200
+  status 200
 end
 
-Dotenv.load
-Stripe.api_key = ENV['STRIPE_ENV'] == 'production' ? ENV['STRIPE_SECRET_KEY'] : ENV['STRIPE_TEST_SECRET_KEY']
-Stripe.api_version = '2020-03-02'
+# Security: Authentication Middleware
+def authenticate!
+  # Skip authentication for root path
+  return if request.path == '/'
+  
+  # In production, API_KEY is required
+  if PRODUCTION && (API_KEY.nil? || API_KEY.empty?)
+    status 500
+    content_type :json
+    halt({ 
+      error: 'Server configuration error: API_KEY is required in production but is not set.',
+      message: 'Please set the API_KEY environment variable.' 
+    }.to_json)
+  end
+  
+  # If API_KEY is not configured (non-production), warn but allow
+  if API_KEY.nil? || API_KEY.empty?
+    puts "⚠️  WARNING: API_KEY is not set. Endpoints are unprotected. This is UNSAFE for production!"
+    return
+  end
+  
+  # Check for API key in header or query parameter
+  provided_key = request.env['HTTP_X_API_KEY'] || 
+                 request.env['HTTP_AUTHORIZATION']&.sub(/^Bearer /, '') ||
+                 params[:api_key]
+  
+  if provided_key != API_KEY
+    status 401
+    content_type :json
+    halt({ 
+      error: 'Unauthorized. Valid API key required.',
+      message: 'Include your API key in the X-API-Key header or Authorization: Bearer header.' 
+    }.to_json)
+  end
+end
+
+# Apply authentication to all endpoints except root
+before do
+  authenticate!
+end
 
 def log_info(message)
   puts "\n" + message + "\n\n"
@@ -38,13 +138,25 @@ end
 
 def validateApiKey
   if Stripe.api_key.nil? || Stripe.api_key.empty?
-    return "Error: you provided an empty secret key. Please provide your test mode secret key. For more information, see https://stripe.com/docs/keys"
+    mode = STRIPE_ENV == 'production' ? 'production' : 'test'
+    return "Error: you provided an empty secret key. Please provide your #{mode} mode secret key. For more information, see https://stripe.com/docs/keys"
   end
   if Stripe.api_key.start_with?('pk')
-    return "Error: you used a publishable key to set up the example backend. Please use your test mode secret key. For more information, see https://stripe.com/docs/keys"
+    return "Error: you used a publishable key to set up the backend. Please use your secret key. For more information, see https://stripe.com/docs/keys"
   end
-  if Stripe.api_key.start_with?('sk_live')
-    return "Error: you used a live mode secret key to set up the example backend. Please use your test mode secret key. For more information, see https://stripe.com/docs/keys#test-live-modes"
+  # Production validation: ensure key matches environment
+  if STRIPE_ENV == 'production'
+    unless Stripe.api_key.start_with?('sk_live')
+      return "Error: you are in production mode but using a test key. Please use your live mode secret key (sk_live_...). For more information, see https://stripe.com/docs/keys#test-live-modes"
+    end
+  else
+    # Test mode: ensure key matches environment
+    if Stripe.api_key.start_with?('sk_live')
+      return "Error: you are in test mode but using a live key. Please use your test mode secret key (sk_test_...). For more information, see https://stripe.com/docs/keys#test-live-modes"
+    end
+    unless Stripe.api_key.start_with?('sk_test')
+      return "Error: invalid secret key format. Please use your test mode secret key (sk_test_...). For more information, see https://stripe.com/docs/keys"
+    end
   end
   return nil
 end

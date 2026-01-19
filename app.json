@@ -1,12 +1,34 @@
 {
-  "name": "Example Terminal Backend",
-  "description": "For testing the Stripe Terminal SDK example apps. https://stripe.com/docs/terminal",
+  "name": "Stripe Terminal Backend",
+  "description": "Production-ready backend for Stripe Terminal SDK. https://stripe.com/docs/terminal",
   "repository": "https://github.com/stripe/example-terminal-backend",
   "keywords": ["ios", "android", "javascript", "stripe", "terminal", "stripe terminal"],
   "env": {
+    "ENVIRONMENT": {
+      "description": "Set to 'production' for production deployment, or leave empty for test mode",
+      "required": false,
+      "value": "production"
+    },
+    "STRIPE_ENV": {
+      "description": "Stripe environment: 'production' for live mode, 'test' for test mode",
+      "required": false,
+      "value": "production"
+    },
+    "STRIPE_SECRET_KEY": {
+      "description": "Your Stripe LIVE secret key (starts with sk_live_...). Required for production. Find it at https://dashboard.stripe.com/account/apikeys",
+      "required": false
+    },
     "STRIPE_TEST_SECRET_KEY": {
-      "description": "Find this at https://dashboard.stripe.com/account/apikeys (it'll look like sk_test_****)",
+      "description": "Your Stripe TEST secret key (starts with sk_test_...). Used when STRIPE_ENV=test. Find it at https://dashboard.stripe.com/account/apikeys",
+      "required": false
+    },
+    "API_KEY": {
+      "description": "API key for authenticating requests to this backend. Generate a strong random string. Requests must include this in X-API-Key header or Authorization: Bearer header",
       "required": true
+    },
+    "ALLOWED_ORIGINS": {
+      "description": "Comma-separated list of allowed CORS origins (e.g., 'https://example.com,https://app.example.com'). Leave empty or set to '*' for test mode only",
+      "required": false
     }
   }
 }
