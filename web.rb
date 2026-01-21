@@ -60,8 +60,9 @@ def log_info(message)
 end
 
 get '/' do
-  status 200
-  send_file 'index.html'
+  status 404
+  content_type :json
+  {:error => 'Not Found', :message => 'This servvice is not available.'}.to_json
 end
 
 def validateApiKey
