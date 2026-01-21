@@ -1,8 +1,6 @@
 # Stripe Terminal Backend
 
-⚠️ **Production Ready**: This backend has been configured for production deployment with authentication, security headers, and proper CORS configuration. See [Production Deployment](#production-deployment) for details.
-
-> **Note**: If you're looking for the original example/testing version, refer to the git history or the original Stripe example repository.
+✅ **Production Ready**: This backend is configured for production deployment. Simply set your Stripe production secret key and you're ready to go. See [Production Deployment](#production-deployment) for details.
 
 This is a simple [Sinatra](http://www.sinatrarb.com/) webapp that you can use to run the [Stripe Terminal](https://stripe.com/docs/terminal) example apps. To get started, you can choose from the following options:
 
@@ -29,12 +27,6 @@ Clone down this repo to your computer, and then follow the steps below:
 STRIPE_TEST_SECRET_KEY=sk_test_YOUR_TEST_KEY
 ENVIRONMENT=development
 STRIPE_ENV=test
-
-# Optional: Add API key for local testing (recommended)
-# API_KEY=your-local-test-api-key
-
-# Optional: Restrict CORS origins for local development
-# ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8080
 ```
 
    **Note**: For production, see the [Production Deployment](#production-deployment) section.
@@ -74,35 +66,17 @@ We have a pre-built Docker image you can run locally if you're into the convenie
 
 ## Production Deployment
 
-### ⚠️ Important Security Considerations
-
-This backend has been configured for production use with the following security features:
-
-- **API Authentication**: All endpoints (except `/`) require authentication via API key
-- **CORS Protection**: Configurable allowed origins to prevent unauthorized access
-- **Security Headers**: XSS protection, frame options, content type sniffing protection
-- **Production Stripe Keys**: Support for live mode Stripe API keys
-- **Environment Detection**: Automatic detection of production vs test mode
-
 ### Required Environment Variables
 
-For production deployment, you **must** configure the following environment variables:
+For production deployment, you only need to configure:
 
-1. **`API_KEY`** (REQUIRED): A strong, randomly generated API key for authenticating requests
-   - Generate a secure key: `openssl rand -hex 32` or use a password manager
-   - Clients must send this key in the `X-API-Key` header or `Authorization: Bearer <key>` header
-
-2. **`STRIPE_SECRET_KEY`** (REQUIRED for production): Your Stripe **live** secret key (starts with `sk_live_...`)
+1. **`STRIPE_SECRET_KEY`** (REQUIRED): Your Stripe **live** secret key (starts with `sk_live_...`)
    - Get it from: https://dashboard.stripe.com/account/apikeys
    - **Never commit this key to version control**
 
-3. **`ALLOWED_ORIGINS`** (REQUIRED for production): Comma-separated list of allowed CORS origins
-   - Example: `https://yourdomain.com,https://app.yourdomain.com`
-   - **Do not use `*` in production** - specify exact origins
+2. **`ENVIRONMENT`** or **`RACK_ENV`**: Set to `production` to enable production mode
 
-4. **`ENVIRONMENT`** or **`RACK_ENV`**: Set to `production` to enable production mode
-
-5. **`STRIPE_ENV`**: Set to `production` to use live Stripe keys (defaults based on ENVIRONMENT)
+3. **`STRIPE_ENV`**: Set to `production` to use live Stripe keys (defaults to `production` when ENVIRONMENT is set)
 
 ### Optional Environment Variables
 
@@ -121,8 +95,6 @@ For production deployment, you **must** configure the following environment vari
    STRIPE_ENV=production
    RACK_ENV=production
    STRIPE_SECRET_KEY=sk_live_...
-   API_KEY=<generate-a-strong-random-key>
-   ALLOWED_ORIGINS=https://yourdomain.com,https://app.yourdomain.com
    ```
 4. Deploy the service
 
@@ -135,8 +107,6 @@ For production deployment, you **must** configure the following environment vari
    heroku config:set STRIPE_ENV=production
    heroku config:set RACK_ENV=production
    heroku config:set STRIPE_SECRET_KEY=sk_live_...
-   heroku config:set API_KEY=<generate-a-strong-random-key>
-   heroku config:set ALLOWED_ORIGINS=https://yourdomain.com
    ```
 3. Deploy: `git push heroku main`
 
@@ -154,32 +124,17 @@ For production deployment, you **must** configure the following environment vari
      -e ENVIRONMENT=production \
      -e STRIPE_ENV=production \
      -e STRIPE_SECRET_KEY=sk_live_... \
-     -e API_KEY=<your-api-key> \
-     -e ALLOWED_ORIGINS=https://yourdomain.com \
      stripe-terminal-backend
    ```
 
 ### Client Integration
 
-When calling the API from your frontend or mobile app, include the API key in requests:
+Simply call the API from your frontend or mobile app without any authentication headers:
 
-**Using X-API-Key header:**
 ```javascript
 fetch('https://your-backend.com/connection_token', {
   method: 'POST',
   headers: {
-    'X-API-Key': 'your-api-key',
-    'Content-Type': 'application/json'
-  }
-})
-```
-
-**Using Authorization header:**
-```javascript
-fetch('https://your-backend.com/connection_token', {
-  method: 'POST',
-  headers: {
-    'Authorization': 'Bearer your-api-key',
     'Content-Type': 'application/json'
   }
 })
@@ -189,20 +144,17 @@ fetch('https://your-backend.com/connection_token', {
 
 Before deploying to production, ensure:
 
-- [ ] `API_KEY` is set and is a strong, random value
 - [ ] `STRIPE_SECRET_KEY` is your **live** key (starts with `sk_live_...`)
-- [ ] `ALLOWED_ORIGINS` is set and does NOT contain `*`
 - [ ] `ENVIRONMENT=production` or `RACK_ENV=production` is set
 - [ ] All sensitive keys are stored securely (environment variables, not in code)
 - [ ] HTTPS is enabled (handled by your hosting provider)
-- [ ] You've tested the endpoints with authentication
-- [ ] You've verified CORS is working correctly
+- [ ] You've tested the endpoints to verify they're working
+- [ ] You've verified CORS is working correctly (all origins are allowed)
 
 ### Security Notes
 
-- **Never commit API keys or secrets to version control**
+- **Never commit Stripe secret keys to version control**
 - **Use HTTPS in production** (most hosting platforms provide this automatically)
-- **Rotate your API keys regularly** and update them in your environment variables
 - **Monitor your Stripe dashboard** for unusual activity
 - **Consider implementing rate limiting** at your hosting provider level
 - **Keep dependencies updated** for security patches

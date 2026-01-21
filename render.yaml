@@ -14,10 +14,6 @@ services:
       - key: RACK_ENV
         value: production
       - key: STRIPE_SECRET_KEY
-        sync: false # Set your LIVE Stripe secret key (sk_live_...) in the dashboard
+        sync: false # REQUIRED: Set your LIVE Stripe secret key (sk_live_...) in the dashboard
       - key: STRIPE_TEST_SECRET_KEY
-        sync: false # Optional: Set your TEST Stripe secret key (sk_test_...) for fallback
-      - key: API_KEY
-        sync: false # REQUIRED: Set a strong random API key for authentication
-      - key: ALLOWED_ORIGINS
-        sync: false # REQUIRED: Set comma-separated allowed origins (e.g., 'https://yourdomain.com')
+        sync: false # Optional: Set your TEST Stripe secret key (sk_test_...) for development/testing

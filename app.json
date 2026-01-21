@@ -16,18 +16,10 @@
     },
     "STRIPE_SECRET_KEY": {
       "description": "Your Stripe LIVE secret key (starts with sk_live_...). Required for production. Find it at https://dashboard.stripe.com/account/apikeys",
-      "required": false
+      "required": true
     },
     "STRIPE_TEST_SECRET_KEY": {
       "description": "Your Stripe TEST secret key (starts with sk_test_...). Used when STRIPE_ENV=test. Find it at https://dashboard.stripe.com/account/apikeys",
-      "required": false
-    },
-    "API_KEY": {
-      "description": "API key for authenticating requests to this backend. Generate a strong random string. Requests must include this in X-API-Key header or Authorization: Bearer header",
-      "required": true
-    },
-    "ALLOWED_ORIGINS": {
-      "description": "Comma-separated list of allowed CORS origins (e.g., 'https://example.com,https://app.example.com'). Leave empty or set to '*' for test mode only",
       "required": false
     }
   }

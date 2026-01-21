@@ -6,11 +6,6 @@ Use this checklist before deploying to production to ensure all security measure
 
 ### Environment Variables (Required)
 
-- [ ] **`API_KEY`** - Set a strong, random API key
-  - Generate with: `openssl rand -hex 32`
-  - Store securely (environment variables, not in code)
-  - Share with your frontend/mobile app teams securely
-
 - [ ] **`STRIPE_SECRET_KEY`** - Your Stripe **LIVE** secret key
   - Must start with `sk_live_...`
   - Get from: https://dashboard.stripe.com/account/apikeys
@@ -27,22 +22,18 @@ Use this checklist before deploying to production to ensure all security measure
 
 ### Security Verification
 
-- [ ] All endpoints require authentication (except `/`)
-- [ ] CORS is configured to specific origins (not `*`)
 - [ ] HTTPS is enabled (handled by hosting provider)
-- [ ] All API keys are stored in environment variables (not in code)
+- [ ] All Stripe keys are stored in environment variables (not in code)
 - [ ] `.env` file is in `.gitignore` (if using git)
 - [ ] Stripe dashboard is monitored for unusual activity
 
 ### Testing Checklist
 
-- [ ] Test `/connection_token` endpoint with API key
-- [ ] Test `/create_payment_intent` endpoint with API key
-- [ ] Test CORS from your frontend domain
-- [ ] Test without API key (should return 401)
-- [ ] Test with wrong API key (should return 401)
+- [ ] Test `/connection_token` endpoint
+- [ ] Test `/create_payment_intent` endpoint
+- [ ] Test CORS from your frontend domain (should work from any origin)
 - [ ] Verify live Stripe keys are being used
-- [ ] Test a small live payment in Stripe test mode first
+- [ ] Test a small live payment (verify it appears in Stripe dashboard)
 
 ### Deployment Platform Configuration
 
@@ -75,12 +66,9 @@ Use this checklist before deploying to production to ensure all security measure
 
 ## Common Issues
 
-### "API_KEY is required in production but is not set"
-**Solution**: Set the `API_KEY` environment variable in your hosting platform.
-
 ### CORS errors from frontend
 **Solution**: 
-1. Verify `ALLOWED_ORIGINS` includes your frontend domain
+1. CORS is enabled for all origins by default
 2. Ensure frontend sends requests with proper Origin header
 3. Check that CORS preflight (OPTIONS) requests are working
 
