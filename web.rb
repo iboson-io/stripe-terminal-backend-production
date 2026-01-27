@@ -1,3 +1,7 @@
+# Prevent Sinatra from parsing command-line arguments that might cause issues
+# We'll configure the port and bind address directly in code
+ARGV.clear if ARGV.any?
+
 require 'sinatra'
 require 'stripe'
 require 'dotenv'
@@ -5,8 +9,14 @@ require 'json'
 require 'sinatra/cross_origin'
 require 'rack/protection'
 
+# Set the port from environment variable or default to 4567
+# This ensures compatibility with Railway, Render, Heroku, and other platforms
+set :port, ENV['PORT'] ? ENV['PORT'].to_i : 4567
+set :bind, '0.0.0.0'
+
 # Load environment variables
-Dotenv.load
+# Load .env file if it exists (for local development)
+Dotenv.load if File.exist?('.env')
 
 # Production/Environment Configuration
 PRODUCTION = ENV['RACK_ENV'] == 'production' || ENV['ENVIRONMENT'] == 'production'
@@ -51,6 +61,9 @@ before do
 end
 
 options "*" do
+  response.headers["Allow"] = "GET, POST, OPTIONS"
+  response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept, X-User-Email, X-Auth-Token"
+  response.headers["Access-Control-Allow-Origin"] = "*"
   status 200
 end
 
@@ -154,6 +167,23 @@ end
 # The example backend does not currently support connected accounts.
 # To create a PaymentIntent for a connected account, see
 # https://stripe.com/docs/terminal/features/connect#direct-payment-intents-server-side
+# Looks up or creates a Customer on your stripe account with the provided email
+def lookupOrCreateCustomer(customerEmail)
+  return nil if customerEmail.nil? || customerEmail.empty?
+  
+  begin
+    customerList = Stripe::Customer.list(email: customerEmail, limit: 1).data
+    if (customerList.length == 1)
+      return customerList[0]
+    else
+      return Stripe::Customer.create(email: customerEmail)
+    end
+  rescue Stripe::StripeError => e
+    log_info("Error creating or retrieving customer! #{e.message}")
+    return nil
+  end
+end
+
 post '/create_payment_intent' do
   validationError = validateApiKey
   if !validationError.nil?
@@ -162,14 +192,41 @@ post '/create_payment_intent' do
   end
 
   begin
-    payment_intent = Stripe::PaymentIntent.create(
+    # Get email from request
+    customer_email = params[:email] || params[:receipt_email]
+    
+    # Look up or create Stripe Customer from email
+    customer = nil
+    if customer_email
+      customer = lookupOrCreateCustomer(customer_email)
+    end
+    
+    payment_intent_params = {
       :payment_method_types => params[:payment_method_types] || ['card_present'],
       :capture_method => params[:capture_method] || 'manual',
       :amount => params[:amount],
       :currency => params[:currency] || 'usd',
       :description => params[:description] || 'Example PaymentIntent',
       :payment_method_options => params[:payment_method_options] || [],
-      :receipt_email => params[:receipt_email],
+      :receipt_email => customer_email,
+    }
+    
+    # Add customer if we have one
+    if customer
+      payment_intent_params[:customer] = customer.id
+    end
+    
+    # Add metadata if provided
+    if params[:metadata] && !params[:metadata].empty?
+      payment_intent_params[:metadata] = params[:metadata]
+    end
+    
+    payment_intent = Stripe::PaymentIntent.create(payment_intent_params)
+    
+    # Update description to only contain the PaymentIntent ID
+    payment_intent = Stripe::PaymentIntent.update(
+      payment_intent.id,
+      description: payment_intent.id
     )
   rescue Stripe::StripeError => e
     status 402
