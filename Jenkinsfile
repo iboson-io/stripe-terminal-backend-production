@@ -5,6 +5,7 @@ carwashSwarmDeploy(
   imageName: 'carwash-saas-stripe-terminal',
   serviceName: 'carwash_stripe_terminal',
   project: 'carwash',
+  contextPath: '.'
 )
 
 def defineTargetEnv() {
@@ -14,10 +15,6 @@ def defineTargetEnv() {
   switch(branchName) {
     case 'master':
       return 'prod'
-    case 'staging':
-      return 'staging'
-    case 'develop':
-      return 'dev'
     default:
       return 'none'
   }
