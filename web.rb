@@ -75,7 +75,7 @@ end
 get '/' do
   status 404
   content_type :json
-  {:error => 'Not Found', :message => 'This servvice is not available.'}.to_json
+  {:error => 'Not Found', :message => 'This service is not available.'}.to_json
 end
 
 def validateApiKey

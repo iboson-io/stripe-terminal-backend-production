@@ -5,7 +5,7 @@ services:
     region: oregon
     plan: starter
     buildCommand: bundle install
-    startCommand: bundle exec ruby web.rb -p $PORT -o 0.0.0.0
+    startCommand: bundle exec ruby web.rb
     envVars:
       - key: ENVIRONMENT
         value: production
